@@ -1,0 +1,175 @@
+GRAPH = {}
+directed = False;
+weighted = True;
+
+
+def addVertex(GRAPH, s, d=None, w='0'):
+    if (s not in GRAPH):
+        GRAPH[s] = []
+    list = GRAPH[s]
+    if (d != None) and d != '':
+        list.append([d, w])
+    GRAPH[s] = list
+
+
+def printGraph(GRAPH):
+    for source in GRAPH:
+        row = str(source) + " : "
+        for dest in GRAPH[source]:
+            if weighted:
+                row = str(row) + "(" + str(dest[0]) + ", " + str(dest[1]) + ")"
+            else:
+                row = str(row) + str(dest[0])
+            if GRAPH[source].index(dest) != len(GRAPH[source]) - 1:
+                row = str(row) + ", "
+        print(row)
+
+# Binary Heap Data structure with as described features
+class BinaryHeap:
+
+    def __init__(self):
+        self.items = []
+        self.size = 0
+        self.Position = {}
+
+    def StartHeap(self, n):
+        self.items = []
+        self.size = 0
+        self.Position = {}
+
+    def Size(self):
+        return self.size
+
+    def parent(self, i):
+        return (i - 1) // 2
+
+    def left(self, i):
+        return 2 * i + 1
+
+    def right(self, i):
+        return 2 * i + 2
+
+    def get(self, i):
+        return self.items[i]
+
+    def swap(self, i, j):
+        self.items[i], self.items[j] = self.items[j], self.items[i]
+        self.Position[self.items[i]], self.Position[self.items[j]] = i, j
+
+    def Heapify_Down(self, i):
+        l = self.left(i)
+        r = self.right(i)
+        if l <= self.size - 1 and self.get(l) < self.get(i):
+            smallest = l
+        else:
+            smallest = i
+        if r <= self.size - 1 and self.get(r) < self.get(smallest):
+            smallest = r
+        if smallest != i:
+            self.swap(smallest, i)
+            self.Heapify_Down(smallest)
+
+    def Heapify_Up(self, index):
+        while index != 0:
+            p = self.parent(index)
+            if self.get(p) > self.get(index):
+                self.swap(p, index)
+            index = p
+
+    def Insert(self, key):
+        index = self.size
+        self.items.append(key)
+        self.Position[self.items[index]] = index
+        self.size += 1
+        self.Heapify_Up(index)
+
+    def Delete(self, index):
+        del self.Position[self.items[index]]
+        self.items[index] = self.items[-1]
+        del self.items[-1]
+        self.size -= 1
+        self.Heapify_Down(index)
+
+    def Delete2(self, value):
+        self.Delete(self.Position[value])
+
+
+    def FindMin(self):
+        if self.size == 0:
+            return None
+        return self.items[0]
+
+    def ExtractMin(self):
+        if self.size == 0:
+            return None
+        largest = self.FindMin()
+        self.Delete(0)
+        return largest
+
+    def ChangeKey(self, preValue, newValue):
+        index = self.Position[preValue]
+        self.items[index] = newValue
+        self.Heapify_Up(index)
+        self.Heapify_Down(index)
+
+
+# Implementation of Prim's algorithms using the binary heap as priority queue
+# which return a new graph which is nothing but the required Minimum spanning Tree
+def prims(start):
+    MST = {}
+    pq = BinaryHeap()
+    pq.Insert((0,start, 0)) # insert the starting point in the priority queue
+    Marked = {}
+    minCost = 0
+    while pq.Size():
+        p = pq.ExtractMin()
+        if p[1] in Marked:
+            continue
+        Marked[p[1]] = True
+        minCost += int(p[0])
+        if p[1] == start:
+            addVertex(MST, p[1])
+        else:
+            addVertex(MST, p[1], p[2], p[0])
+            addVertex(MST, p[2], p[1], p[0])
+
+        for iterate in GRAPH[p[1]]:
+            y = iterate[0]
+            if y not in Marked:
+                pq.Insert((iterate[1], iterate[0], p[1]))
+
+    return MST
+
+
+# Graph code to read input from the file
+def readFileAndPrint():
+    global directed, weighted  # Refer to Global Variable
+    file = open("graph.txt", "r")
+    config = file.readline()  # Read first line of file to get the graph type
+    config = config.strip('\n')
+    config = config.split(" ")
+    if (config[0] == "directed"):
+        directed = False
+    if (config[1] == "weighted"):
+        weighted = True
+
+    for line in file:  # read rest of the file line by line
+        line = line.strip('\n')  # eliminate end of line character
+        temp = line.split("=")
+        if (len(temp) == 3):
+            addVertex(GRAPH, temp[0], temp[1], temp[2])
+            if (directed == False):  # if undirected graph, make entry for destination to source
+                addVertex(GRAPH, temp[1], temp[0], temp[2])
+        elif (len(temp) == 2):
+            addVertex(temp[0], temp[1])
+            if (directed == False and temp[1] != ''):
+                addVertex(GRAPH, temp[1], temp[0])
+        elif (len(temp) == 1):
+            addVertex(GRAPH, temp[0])
+
+    printGraph(GRAPH)
+
+
+readFileAndPrint()
+start = input("Enter the node which will act as the root node")
+printGraph(prims(start))
